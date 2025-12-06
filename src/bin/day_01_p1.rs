@@ -6,7 +6,7 @@ fn main() {
 
     let inputs = read_inputs("res/day_01_input.txt");
 
-    for input in inputs {
+    for input in &inputs {
         current_dial = input.apply_to(current_dial);
         if current_dial == 0 {
             zeros_counter += 1;
@@ -24,13 +24,13 @@ enum Input {
 impl Input {
     fn apply_to(&self, current_dial: u32) -> u32 {
         match self {
-            Input::R(i) => (current_dial + i) % 100,
-            Input::L(i) => {
-                let i = *i % 100;
-                if current_dial >= i {
-                    current_dial - i
+            Input::R(n) => (current_dial + n) % 100,
+            Input::L(n) => {
+                let n = *n % 100;
+                if current_dial >= n {
+                    current_dial - n
                 } else {
-                    100 - (i - current_dial)
+                    100 - (n - current_dial)
                 }
             }
         }
@@ -44,21 +44,17 @@ fn read_inputs(path: &str) -> Vec<Input> {
     let mut inputs: Vec<Input> = Vec::new();
 
     for input_line in input_lines {
-        let mut input_chars = input_line.chars();
-        match input_chars.next() {
-            Some('L') => {
-                let shift: Vec<char> = input_chars.collect();
-                let shift = String::from_iter(shift).parse::<u32>().unwrap();
-                inputs.push(Input::L(shift));
-            }
-            Some('R') => {
-                let shift: Vec<char> = input_chars.collect();
-                let shift = String::from_iter(shift).parse::<u32>().unwrap();
-                inputs.push(Input::R(shift));
-            }
-            Some(c) => panic!("Invalid starting character `{c}` for line `{input_line}`."),
-            None => panic!("Empty line."),
+        let (direction, shift) = input_line.split_at(1);
+        let shift: u32 = shift
+            .parse()
+            .expect("Invalid shift `{shift}`: can't convert it to u32.");
+
+        match direction {
+            "L" => inputs.push(Input::L(shift)),
+            "R" => inputs.push(Input::R(shift)),
+            c => panic!("Invalid starting character `{c}` for line `{input_line}`."),
         }
     }
+
     inputs
 }
