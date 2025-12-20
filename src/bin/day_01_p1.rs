@@ -1,5 +1,7 @@
 use std::fs;
 
+/// The value is only from 0 to 100 so it'll fit on a u8, but I chose to use
+/// u32 for simpler operations with the input (that isn't limited).
 type Dial = u32;
 
 fn main() {
