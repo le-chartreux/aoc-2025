@@ -35,26 +35,28 @@ impl Input {
             }
         }
     }
-}
 
-fn read_inputs(path: &str) -> Vec<Input> {
-    let input_file_content = fs::read_to_string(path).expect("Should be able to read file input.");
-    let input_lines = input_file_content.trim().lines();
-
-    let mut inputs: Vec<Input> = Vec::new();
-
-    for input_line in input_lines {
-        let (direction, shift) = input_line.split_at(1);
+    /// Parse `text` that has the format `L{shift}` or `R{shift}`.
+    fn from_str(text: &str) -> Self {
+        let (direction, shift) = text.split_at(1);
         let shift: u32 = shift
             .parse()
             .expect("Invalid shift `{shift}`: can't convert it to u32.");
 
         match direction {
-            "L" => inputs.push(Input::L(shift)),
-            "R" => inputs.push(Input::R(shift)),
-            c => panic!("Invalid starting character `{c}` for line `{input_line}`."),
+            "L" => Self::L(shift),
+            "R" => Self::R(shift),
+            c => panic!("Invalid starting character `{c}` for text `{text}`."),
         }
     }
+}
 
-    inputs
+fn read_inputs(path: &str) -> Vec<Input> {
+    let input_file_content = fs::read_to_string(path).expect("Should be able to read file input.");
+
+    input_file_content
+        .trim()
+        .lines()
+        .map(Input::from_str)
+        .collect()
 }
