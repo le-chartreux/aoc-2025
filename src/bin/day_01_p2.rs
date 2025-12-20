@@ -3,6 +3,7 @@ use std::fs;
 /// The value is only from 0 to 100 so it'll fit on a u8, but I chose to use
 /// u32 for simpler operations with the input (that isn't limited).
 type Dial = u32;
+const DIAL_SIZE: u32 = 100;
 
 fn main() {
     let mut current_dial: Dial = 50;
@@ -29,15 +30,15 @@ impl Input {
     /// zeros encountered.
     fn apply_to(&self, dial: Dial) -> (Dial, u32) {
         match self {
-            Input::R(n) => ((dial + n) % 100, (dial + n) / 100),
+            Input::R(n) => ((dial + n) % DIAL_SIZE, (dial + n) / 100),
             Input::L(n) => {
                 let n = *n;
                 if dial > n {
                     (dial - n, 0)
                 } else {
-                    let zeros = (n - dial) / 100 + 1;
+                    let zeros = (n - dial) / DIAL_SIZE + 1;
                     (
-                        (100 * zeros + dial - n) % 100,
+                        (DIAL_SIZE * zeros + dial - n) % 100,
                         if dial != 0 { zeros } else { zeros - 1 },
                     )
                 }

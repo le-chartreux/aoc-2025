@@ -3,11 +3,12 @@ use std::fs;
 /// The value is only from 0 to 100 so it'll fit on a u8, but I chose to use
 /// u32 for simpler operations with the input (that isn't limited).
 type Dial = u32;
+const DIAL_SIZE: u32 = 100;
 
 fn main() {
     let mut current_dial: Dial = 50;
     let mut zeros_counter: u32 = 0;
-
+    
     let inputs = read_inputs("res/day_01_input.txt");
 
     for input in &inputs {
@@ -28,13 +29,13 @@ enum Input {
 impl Input {
     fn apply_to(&self, current_dial: Dial) -> Dial {
         match self {
-            Input::R(n) => (current_dial + n) % 100,
+            Input::R(n) => (current_dial + n) % DIAL_SIZE,
             Input::L(n) => {
-                let n = *n % 100;
+                let n = *n % DIAL_SIZE;
                 if current_dial >= n {
                     current_dial - n
                 } else {
-                    100 - (n - current_dial)
+                    DIAL_SIZE - (n - current_dial)
                 }
             }
         }
