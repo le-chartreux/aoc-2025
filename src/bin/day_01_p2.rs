@@ -1,3 +1,4 @@
+use std::str::FromStr;
 use std::fs;
 
 /// The value is only from 0 to 100 so it'll fit on a u8, but I chose to use
@@ -45,18 +46,24 @@ impl Input {
             }
         }
     }
+}
+
+impl FromStr for Input {
+    type Err = String;
 
     /// Parse `text` that has the format `L{shift}` or `R{shift}`.
-    fn from_str(text: &str) -> Self {
+    fn from_str(text: &str) -> Result<Self, Self::Err> {
         let (direction, shift) = text.split_at(1);
         let shift: u32 = shift
             .parse()
             .expect("Invalid shift `{shift}`: can't convert it to u32.");
 
         match direction {
-            "L" => Self::L(shift),
-            "R" => Self::R(shift),
-            c => panic!("Invalid starting character `{c}` for text `{text}`."),
+            "L" => Ok(Self::L(shift)),
+            "R" => Ok(Self::R(shift)),
+            c => Err(format!(
+                "Invalid starting character `{c}` for direction in text `{text}`."
+            )),
         }
     }
 }
@@ -67,6 +74,6 @@ fn read_inputs(path: &str) -> Vec<Input> {
     input_file_content
         .trim()
         .lines()
-        .map(Input::from_str)
+        .map(|line| Input::from_str(line).expect("Invalid input"))
         .collect()
 }
