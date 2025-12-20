@@ -1,7 +1,9 @@
 use std::fs;
 
+type Dial = u32;
+
 fn main() {
-    let mut current_dial: u32 = 50;
+    let mut current_dial: Dial = 50;
     let mut zeros_counter: u32 = 0;
 
     let inputs = read_inputs("res/day_01_input.txt");
@@ -22,7 +24,7 @@ enum Input {
 }
 
 impl Input {
-    fn apply_to(&self, current_dial: u32) -> u32 {
+    fn apply_to(&self, current_dial: Dial) -> Dial {
         match self {
             Input::R(n) => (current_dial + n) % 100,
             Input::L(n) => {
