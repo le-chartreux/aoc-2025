@@ -1,18 +1,15 @@
-use std::{
-    fs::{self},
-};
+use std::fs::{self};
 
-use aoc_2025::day_02_p2_lib::{Id, IdRange, IdSum, get_invalid_ids_sum};
+use aoc_2025::day_02_p2_lib::{Id, IdRange, IdSum, get_sum_of_invalid_ids};
 
 fn main() {
     let ranges = read_inputs("res/day_02_input.txt");
     let mut sum: IdSum = 0;
     for range in ranges {
-        sum += get_invalid_ids_sum(range);
+        sum += get_sum_of_invalid_ids(range);
     }
     println!("Sum of invalid IDs: {sum}");
 }
-
 
 fn read_inputs(path: &str) -> Vec<IdRange> {
     let input_file_content = fs::read_to_string(path).expect("Should be able to read file input.");
