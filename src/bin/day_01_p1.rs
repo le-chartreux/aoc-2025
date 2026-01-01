@@ -71,3 +71,43 @@ fn read_inputs(path: &str) -> Vec<Input> {
         .map(|line| Input::from_str(line).expect("Invalid input"))
         .collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_apply_to() {
+        let mut dial = 50;
+
+        dial = Input::L(68).apply_to(dial);
+        assert_eq!(dial, 82);
+
+        dial = Input::L(30).apply_to(dial);
+        assert_eq!(dial, 52);
+
+        dial = Input::R(48).apply_to(dial);
+        assert_eq!(dial, 0);
+
+        dial = Input::L(5).apply_to(dial);
+        assert_eq!(dial, 95);
+
+        dial = Input::R(60).apply_to(dial);
+        assert_eq!(dial, 55);
+
+        dial = Input::L(55).apply_to(dial);
+        assert_eq!(dial, 0);
+
+        dial = Input::L(1).apply_to(dial);
+        assert_eq!(dial, 99);
+
+        dial = Input::L(99).apply_to(dial);
+        assert_eq!(dial, 0);
+
+        dial = Input::R(14).apply_to(dial);
+        assert_eq!(dial, 14);
+
+        dial = Input::L(82).apply_to(dial);
+        assert_eq!(dial, 32);
+    }
+}

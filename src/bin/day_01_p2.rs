@@ -1,5 +1,5 @@
-use std::str::FromStr;
 use std::fs;
+use std::str::FromStr;
 
 /// The value is only from 0 to 100 so it'll fit on a u8, but I chose to use
 /// u32 for simpler operations with the input (that isn't limited).
@@ -76,4 +76,63 @@ fn read_inputs(path: &str) -> Vec<Input> {
         .lines()
         .map(|line| Input::from_str(line).expect("Invalid input"))
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_apply_to() {
+        let mut dial = 50;
+        let mut number_of_zeros;
+
+        (dial, number_of_zeros) = Input::L(68).apply_to(dial);
+        assert_eq!(dial, 82);
+        assert_eq!(number_of_zeros, 1);
+
+        (dial, number_of_zeros) = Input::L(30).apply_to(dial);
+        assert_eq!(dial, 52);
+        assert_eq!(number_of_zeros, 0);
+
+        (dial, number_of_zeros) = Input::R(48).apply_to(dial);
+        assert_eq!(dial, 0);
+        assert_eq!(number_of_zeros, 1);
+
+        (dial, number_of_zeros) = Input::L(5).apply_to(dial);
+        assert_eq!(dial, 95);
+        assert_eq!(number_of_zeros, 0);
+
+        (dial, number_of_zeros) = Input::R(60).apply_to(dial);
+        assert_eq!(dial, 55);
+        assert_eq!(number_of_zeros, 1);
+
+        (dial, number_of_zeros) = Input::L(55).apply_to(dial);
+        assert_eq!(dial, 0);
+        assert_eq!(number_of_zeros, 1);
+
+        (dial, number_of_zeros) = Input::L(1).apply_to(dial);
+        assert_eq!(dial, 99);
+        assert_eq!(number_of_zeros, 0);
+
+        (dial, number_of_zeros) = Input::L(99).apply_to(dial);
+        assert_eq!(dial, 0);
+        assert_eq!(number_of_zeros, 1);
+
+        (dial, number_of_zeros) = Input::R(14).apply_to(dial);
+        assert_eq!(dial, 14);
+        assert_eq!(number_of_zeros, 0);
+
+        (dial, number_of_zeros) = Input::L(82).apply_to(dial);
+        assert_eq!(dial, 32);
+        assert_eq!(number_of_zeros, 1);
+
+        (dial, number_of_zeros) = Input::R(491).apply_to(dial);
+        assert_eq!(dial, 23);
+        assert_eq!(number_of_zeros, 5);
+
+        (dial, number_of_zeros) = Input::L(319).apply_to(dial);
+        assert_eq!(dial, 4);
+        assert_eq!(number_of_zeros, 3);
+    }
 }
