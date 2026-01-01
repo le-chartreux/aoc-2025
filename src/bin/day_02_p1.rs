@@ -52,3 +52,24 @@ fn read_input(input: &str) -> IdRange {
     let end: Id = input[1].parse().expect("Can't convert end of ID");
     start..=end
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_id_valid_case_invalid() {
+        for id in [11, 22, 99, 1010, 1188511885, 222222, 446446, 38593859] {
+            assert!(is_id_invalid(id));
+        }
+    }
+
+    #[test]
+    fn test_is_id_valid_case_valid() {
+        for id in [
+            4, 12, 23, 100, 110, 111, 998, 999, 1011, 118851855, 23456, 44646, 565656,
+        ] {
+            assert!(!is_id_invalid(id));
+        }
+    }
+}
