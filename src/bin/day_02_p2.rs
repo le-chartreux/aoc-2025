@@ -40,7 +40,6 @@ impl Invalidity for Id {
         let number_of_digits = self.get_number_of_digits();
 
         for n in 1..number_of_digits {
-            // TODO: que sur les multiples
             if number_of_digits.is_multiple_of(n)
                 && self.get_nth_first_digits(n).repeat(number_of_digits / n) == *self
             {
