@@ -11,12 +11,16 @@ fn main() {
 }
 
 fn largest_possible_joltage(bank: &Bank) -> BatteryJoltage {
+    assert!(
+        bank.len() >= 2,
+        "can't get largest possible joltage on a bank of less than two elements"
+    );
+
     let mut left_digit = 0;
     let mut right_digit = 0;
 
     // The left digit can't be the last digit as there's nothing to its right.
-    for i in bank[..(bank.len() - 1)].iter() {
-        let i = *i;
+    for &i in bank[..(bank.len() - 1)].iter() {
         if i > left_digit {
             left_digit = i;
             right_digit = 0;
@@ -25,7 +29,7 @@ fn largest_possible_joltage(bank: &Bank) -> BatteryJoltage {
         }
     }
 
-    let last_elem = *bank.last().expect("failed to get last element of Bank");
+    let last_elem = bank[bank.len() - 1];
     if last_elem > right_digit {
         right_digit = last_elem;
     }
