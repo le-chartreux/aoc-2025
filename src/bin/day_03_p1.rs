@@ -6,40 +6,31 @@ type Bank = Vec<BatteryJoltage>;
 
 fn main() {
     let banks = read_inputs("res/day_03_input.txt");
-    let total_output_joltage: BatteryJoltage = banks
-        .iter()
-        .map(|bank| bank.get_largest_possible_joltage())
-        .sum();
+    let total_output_joltage: BatteryJoltage = banks.iter().map(largest_possible_joltage).sum();
     println!("Total ouput joltage: {total_output_joltage}");
 }
 
-trait LargestPossibleJoltage {
-    fn get_largest_possible_joltage(&self) -> BatteryJoltage;
-}
+fn largest_possible_joltage(bank: &Bank) -> BatteryJoltage {
+    let mut left_digit = 0;
+    let mut right_digit = 0;
 
-impl LargestPossibleJoltage for Bank {
-    fn get_largest_possible_joltage(&self) -> BatteryJoltage {
-        let mut left_digit = 0;
-        let mut right_digit = 0;
-
-        // The left digit can't be the last digit as there's nothing to its right.
-        for i in self[..(self.len() - 1)].iter() {
-            let i = *i;
-            if i > left_digit {
-                left_digit = i;
-                right_digit = 0;
-            } else if i > right_digit {
-                right_digit = i
-            }
+    // The left digit can't be the last digit as there's nothing to its right.
+    for i in bank[..(bank.len() - 1)].iter() {
+        let i = *i;
+        if i > left_digit {
+            left_digit = i;
+            right_digit = 0;
+        } else if i > right_digit {
+            right_digit = i
         }
-
-        let last_elem = *self.last().expect("failed to get last element of Bank");
-        if last_elem > right_digit {
-            right_digit = last_elem;
-        }
-
-        left_digit * 10 + right_digit
     }
+
+    let last_elem = *bank.last().expect("failed to get last element of Bank");
+    if last_elem > right_digit {
+        right_digit = last_elem;
+    }
+
+    left_digit * 10 + right_digit
 }
 
 fn read_inputs(path: &str) -> Vec<Bank> {
@@ -64,25 +55,25 @@ mod tests {
 
     #[test]
     fn largest_possible_joltage_on_987654321111111() {
-        let input: Bank = vec![9, 8, 7, 6, 5, 4, 3, 2, 1, 1, 1, 1, 1, 1, 1];
-        assert_eq!(input.get_largest_possible_joltage(), 98);
+        let bank = vec![9, 8, 7, 6, 5, 4, 3, 2, 1, 1, 1, 1, 1, 1, 1];
+        assert_eq!(largest_possible_joltage(&bank), 98);
     }
 
     #[test]
     fn largest_possible_joltage_on_811111111111119() {
-        let input: Bank = vec![8, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 9];
-        assert_eq!(input.get_largest_possible_joltage(), 89);
+        let bank = vec![8, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 9];
+        assert_eq!(largest_possible_joltage(&bank), 89);
     }
 
     #[test]
     fn largest_possible_joltage_on_234234234234278() {
-        let input: Bank = vec![2, 3, 4, 2, 3, 4, 2, 3, 4, 2, 3, 4, 2, 7, 8];
-        assert_eq!(input.get_largest_possible_joltage(), 78);
+        let bank = vec![2, 3, 4, 2, 3, 4, 2, 3, 4, 2, 3, 4, 2, 7, 8];
+        assert_eq!(largest_possible_joltage(&bank), 78);
     }
 
     #[test]
     fn largest_possible_joltage_on_818181911112111() {
-        let input: Bank = vec![8, 1, 8, 1, 8, 1, 9, 1, 1, 1, 1, 2, 1, 1, 1];
-        assert_eq!(input.get_largest_possible_joltage(), 92);
+        let bank = vec![8, 1, 8, 1, 8, 1, 9, 1, 1, 1, 1, 2, 1, 1, 1];
+        assert_eq!(largest_possible_joltage(&bank), 92);
     }
 }
