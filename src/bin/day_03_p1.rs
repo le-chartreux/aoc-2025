@@ -19,24 +19,26 @@ trait LargestPossibleJoltage {
 
 impl LargestPossibleJoltage for Bank {
     fn get_largest_possible_joltage(&self) -> BatteryJoltage {
-        // It can't be the last digit as there's nothing to its right.
-        let first_digit = self[..(self.len() - 1)]
-            .iter()
-            .max()
-            .expect("failed to get max of Bank except last digit");
+        let mut left_digit = 0;
+        let mut right_digit = 0;
 
-        let first_digit_position = self
-            .iter()
-            .position(|digit| digit == first_digit)
-            .expect("failed to find position of max in Bank");
-        
-        // Only to the right of the max.
-        let second_digit = self[(first_digit_position + 1)..]
-            .iter()
-            .max()
-            .expect("failed to find second max digit in Bank");
+        // The left digit can't be the last digit as there's nothing to its right.
+        for i in self[..(self.len() - 1)].iter() {
+            let i = *i;
+            if i > left_digit {
+                left_digit = i;
+                right_digit = 0;
+            } else if i > right_digit {
+                right_digit = i
+            }
+        }
 
-        first_digit * 10 + second_digit
+        let last_elem = *self.last().expect("failed to get last element of Bank");
+        if last_elem > right_digit {
+            right_digit = last_elem;
+        }
+
+        left_digit * 10 + right_digit
     }
 }
 
