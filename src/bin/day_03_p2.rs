@@ -11,19 +11,29 @@ fn main() {
 }
 
 fn largest_possible_joltage(bank: &Bank) -> BatteryJoltage {
-    let number_of_digits = 12;
+    const NUMBER_OF_DIGITS: usize = 12;
     assert!(
-        bank.len() >= number_of_digits,
-        "can't get largest possible joltage on a bank of less than {number_of_digits} elements"
+        bank.len() >= NUMBER_OF_DIGITS,
+        "can't get largest possible joltage on a bank of less than {NUMBER_OF_DIGITS} elements"
     );
 
-    let result: Vec<BatteryJoltage> = Vec::with_capacity(number_of_digits);
-    // TODO: compute result.
+    let mut result = [0; NUMBER_OF_DIGITS];
+    for (pos_bank, &bank_i) in bank.iter().enumerate() {
+        let mut changed = false;
+        for (pos_result, result_i) in result.iter_mut().enumerate() {
+            if changed {
+                *result_i = 0;
+            } else if bank.len() - pos_bank >= NUMBER_OF_DIGITS - pos_result && bank_i > *result_i {
+                *result_i = bank_i;
+                changed = true;
+            }
+        }
+    }
 
     result
         .iter()
         .enumerate()
-        .map(|(pos, digit)| digit.pow(pos as u32))
+        .map(|(pos, digit)| 10_u64.pow((NUMBER_OF_DIGITS - pos - 1) as u32) * digit)
         .sum()
 }
 
