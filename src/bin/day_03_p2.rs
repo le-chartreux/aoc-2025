@@ -18,13 +18,15 @@ fn largest_possible_joltage(bank: &Bank) -> BatteryJoltage {
     );
 
     let mut result = [0; NUMBER_OF_DIGITS];
-    for (pos_bank, &bank_i) in bank.iter().enumerate() {
+    for (pos_bank, &joltage_bank) in bank.iter().enumerate() {
         let mut changed = false;
-        for (pos_result, result_i) in result.iter_mut().enumerate() {
+        for (pos_result, joltage_result) in result.iter_mut().enumerate() {
             if changed {
-                *result_i = 0;
-            } else if bank.len() - pos_bank >= NUMBER_OF_DIGITS - pos_result && bank_i > *result_i {
-                *result_i = bank_i;
+                *joltage_result = 0;
+            } else if NUMBER_OF_DIGITS - pos_result <= bank.len() - pos_bank
+                && joltage_bank > *joltage_result
+            {
+                *joltage_result = joltage_bank;
                 changed = true;
             }
         }
