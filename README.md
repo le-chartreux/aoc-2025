@@ -29,3 +29,17 @@ cargo run --bin day_01_p1
 | 10  |        |
 | 11  |        |
 | 12  |        |
+
+## Tests
+
+To run unit tests:
+
+```sh
+cargo test
+```
+
+Or, with [nextest](https://nexte.st/), for an easier to read result:
+
+```sh
+cargo nextest run
+```
