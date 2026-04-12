@@ -13,7 +13,7 @@ cargo run --bin day_01_p1
 ## Progression
 
 > [!NOTE]
-> Stars are link to the file.
+> Stars are links to their files.
 
 | Day | Result |
 |-----|--------|
