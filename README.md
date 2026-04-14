@@ -20,7 +20,7 @@ cargo run --bin day_01_p1
 | 1   | [⭐](src/bin/day_01_p1.rs)[⭐](src/bin/day_01_p2.rs) |
 | 2   | [⭐](src/bin/day_02_p1.rs)[⭐](src/bin/day_02_p2.rs) |
 | 3   | [⭐](src/bin/day_03_p1.rs)[⭐](src/bin/day_03_p2.rs) |
-| 4   | [⭐](src/bin/day_04_p1.rs)                           |
+| 4   | [⭐](src/bin/day_04_p1.rs)[⭐](src/bin/day_04_p2.rs) |
 | 5   |                                                      |
 | 6   |                                                      |
 | 7   |                                                      |
