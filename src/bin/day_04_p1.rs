@@ -87,4 +87,57 @@ mod tests {
         let example = PaperGrid { rows };
         assert_eq!(example.count_total_available_rolls(), 13);
     }
+
+    #[test]
+    fn count_rolls_around_coordinates_on_example() {
+        const P: bool = true; // Present
+        const A: bool = false; // Absent
+        let rows = vec![
+            vec![A, A, P, P, A, P, P, P, P, A],
+            vec![P, P, P, A, P, A, P, A, P, P],
+            vec![P, P, P, P, P, A, P, A, P, P],
+            vec![P, A, P, P, P, P, A, A, P, A],
+            vec![P, P, A, P, P, P, P, A, P, P],
+            vec![A, P, P, P, P, P, P, P, A, P],
+            vec![A, P, A, P, A, P, A, P, P, P],
+            vec![P, A, P, P, P, A, P, P, P, P],
+            vec![A, P, P, P, P, P, P, P, P, A],
+            vec![P, A, P, A, P, P, P, A, P, A],
+        ];
+        let example = PaperGrid { rows };
+        assert_eq!(example.count_rolls_around_coordinates(0, 0), 2);
+        assert_eq!(example.count_rolls_around_coordinates(9, 0), 3);
+        assert_eq!(example.count_rolls_around_coordinates(0, 9), 1);
+        assert_eq!(example.count_rolls_around_coordinates(9, 9), 2);
+        assert_eq!(example.count_rolls_around_coordinates(3, 4), 7);
+        assert_eq!(example.count_rolls_around_coordinates(4, 3), 7);
+        assert_eq!(example.count_rolls_around_coordinates(8, 2), 4);
+        assert_eq!(example.count_rolls_around_coordinates(2, 8), 5);
+        assert_eq!(example.count_rolls_around_coordinates(9, 8), 4);
+    }
+
+    #[test]
+    fn is_roll_present_at_coordinates_on_example() {
+        const P: bool = true; // Present
+        const A: bool = false; // Absent
+        let rows = vec![
+            vec![A, A, P, P, A, P, P, P, P, A],
+            vec![P, P, P, A, P, A, P, A, P, P],
+            vec![P, P, P, P, P, A, P, A, P, P],
+            vec![P, A, P, P, P, P, A, A, P, A],
+            vec![P, P, A, P, P, P, P, A, P, P],
+            vec![A, P, P, P, P, P, P, P, A, P],
+            vec![A, P, A, P, A, P, A, P, P, P],
+            vec![P, A, P, P, P, A, P, P, P, P],
+            vec![A, P, P, P, P, P, P, P, P, A],
+            vec![P, A, P, A, P, P, P, A, P, A],
+        ];
+        let example = PaperGrid { rows };
+        assert!(!example.is_roll_present_at_coordinates(0, 0));
+        assert!(!example.is_roll_present_at_coordinates(9, 0));
+        assert!(example.is_roll_present_at_coordinates(0, 9));
+        assert!(!example.is_roll_present_at_coordinates(9, 9));
+        assert!(!example.is_roll_present_at_coordinates(5, 7));
+        assert!(example.is_roll_present_at_coordinates(3, 2));
+    }
 }
