@@ -3,14 +3,18 @@ use std::{fs, ops::RangeInclusive};
 type Id = u64;
 type IdRange = RangeInclusive<Id>;
 
-fn is_fresh(id: Id, ranges: &[IdRange]) -> bool {
-    ranges.iter().any(|range| range.contains(&id))
-}
-
 fn main() {
     let (ranges, ids) = read_input("res/day_05_input.txt");
-    let total_fresh_ingredients = ids.iter().filter(|id| is_fresh(**id, &ranges)).count();
+    let total_fresh_ingredients = count_fresh_ingredients_matching_ids(&ranges, &ids);
     println!("Total fresh ingredients: {total_fresh_ingredients}");
+}
+
+fn count_fresh_ingredients_matching_ids(ranges: &[IdRange], ids: &[Id]) -> usize {
+    ids.iter().filter(|id| is_fresh(**id, ranges)).count()
+}
+
+fn is_fresh(id: Id, ranges: &[IdRange]) -> bool {
+    ranges.iter().any(|range| range.contains(&id))
 }
 
 fn read_input(path: &str) -> (Vec<IdRange>, Vec<Id>) {
@@ -35,4 +39,16 @@ fn read_input(path: &str) -> (Vec<IdRange>, Vec<Id>) {
         .collect();
 
     (ranges, ids)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn count_fresh_ingredients_matching_ids_on_example() {
+        let ranges = [3..=5, 10..=14, 16..=20, 12..=18];
+        let ids = [1, 5, 8, 11, 17, 32];
+        assert_eq!(count_fresh_ingredients_matching_ids(&ranges, &ids), 3);
+    }
 }
