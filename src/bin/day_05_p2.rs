@@ -36,19 +36,14 @@ impl IdRanges {
     fn new() -> Self {
         IdRanges { ranges: vec![] }
     }
-    
+
     /// Calculate the number of IDs inside all the ranges.
     fn total_number_of_ids(&self) -> usize {
         self.ranges.iter().map(IdRange::size).sum()
     }
-    
+
     /// Add a new range to the ranges, modifing existing ranges if necessary.
     fn add(&mut self, range: IdRange) {
-        if self.ranges.is_empty() {
-            self.ranges.push(range);
-            return;
-        }
-
         let mut inserted = false;
         let mut i = 0;
         while i < self.ranges.len() && !inserted {
@@ -70,7 +65,7 @@ impl IdRanges {
             self.ranges.push(range);
         }
     }
-    
+
     /// Re-add all the ranges of the vector so overlapping ranges are merged.
     fn reload(&mut self) {
         let old_ranges = mem::take(&mut self.ranges);
