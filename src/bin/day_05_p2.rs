@@ -1,9 +1,8 @@
-use std::fs;
-use std::mem;
+use std::{collections::HashSet, fs};
 
 type Id = u64;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct IdRange {
     start: Id,
     end: Id,
@@ -21,20 +20,18 @@ impl IdRange {
     fn contains_id(&self, id: Id) -> bool {
         id >= self.start && id <= self.end
     }
-
-    fn contains_id_range(&self, range: &IdRange) -> bool {
-        self.contains_id(range.start) && self.contains_id(range.end)
-    }
 }
 
 #[derive(Debug)]
 struct IdRanges {
-    ranges: Vec<IdRange>,
+    ranges: HashSet<IdRange>,
 }
 
 impl IdRanges {
     fn new() -> Self {
-        IdRanges { ranges: vec![] }
+        IdRanges {
+            ranges: HashSet::new(),
+        }
     }
 
     /// Calculate the number of IDs inside all the ranges.
@@ -42,36 +39,38 @@ impl IdRanges {
         self.ranges.iter().map(IdRange::size).sum()
     }
 
-    /// Add a new range to the ranges, modifing existing ranges if necessary.
-    fn add(&mut self, range: IdRange) {
-        let mut inserted = false;
-        let mut i = 0;
-        while i < self.ranges.len() && !inserted {
-            let existing_range = self.ranges.get_mut(i).expect("can't obtain ranges[i]");
-            inserted = existing_range.contains_id_range(&range);
-            if range.start < existing_range.start && range.end >= existing_range.start {
-                existing_range.start = range.start;
-                inserted = true;
-            }
-            if range.end > existing_range.end && range.start <= existing_range.end {
-                existing_range.end = range.end;
-                inserted = true;
-            }
-            i += 1;
+    /// Add a new range to the ranges, modifing and/or deleting existing ranges if necessary.
+    fn add(&mut self, mut range: IdRange) {
+        // Expand to the start of the range where the range's start is in, if any.
+        if let Some(IdRange {
+            start: range_start,
+            end: _,
+        }) = self
+            .ranges
+            .iter()
+            .find(|existing_range| existing_range.contains_id(range.start))
+        {
+            range.start = *range_start;
         }
-        if inserted {
-            self.reload();
-        } else {
-            self.ranges.push(range);
-        }
-    }
 
-    /// Re-add all the ranges of the vector so overlapping ranges are merged.
-    fn reload(&mut self) {
-        let old_ranges = mem::take(&mut self.ranges);
-        for range in old_ranges {
-            self.add(range);
+        // Expand to the end of the range where the range's end is in, if any.
+        if let Some(IdRange {
+            start: _,
+            end: range_end,
+        }) = self
+            .ranges
+            .iter()
+            .find(|existing_range| existing_range.contains_id(range.end))
+        {
+            range.end = *range_end;
         }
+
+        // Remove existing ranges in between the start and the end of the range.
+        self.ranges.retain(|existing_range| {
+            !(range.contains_id(existing_range.start) || range.contains_id(existing_range.end))
+        });
+
+        self.ranges.insert(range);
     }
 }
 
@@ -118,28 +117,123 @@ mod tests {
         let mut ranges = IdRanges::new();
 
         ranges.add(IdRange::new(3, 5));
-        assert_eq!(ranges.ranges, vec![IdRange::new(3, 5)]);
+        assert_eq!(ranges.ranges, HashSet::from_iter(vec![IdRange::new(3, 5)]));
 
         ranges.add(IdRange::new(10, 14));
         assert_eq!(
             ranges.ranges,
-            vec![IdRange::new(3, 5), IdRange::new(10, 14)]
+            HashSet::from_iter(vec![IdRange::new(3, 5), IdRange::new(10, 14)])
         );
 
         ranges.add(IdRange::new(16, 20));
         assert_eq!(
             ranges.ranges,
-            vec![
+            HashSet::from_iter(vec![
                 IdRange::new(3, 5),
                 IdRange::new(10, 14),
-                IdRange::new(16, 20)
-            ]
+                IdRange::new(16, 20),
+            ])
         );
 
         ranges.add(IdRange::new(12, 18));
         assert_eq!(
             ranges.ranges,
-            vec![IdRange::new(3, 5), IdRange::new(10, 20)]
+            HashSet::from_iter(vec![IdRange::new(3, 5), IdRange::new(10, 20)])
+        );
+    }
+
+    #[test]
+    fn add_id_range_contained_in_other() {
+        let mut ranges = IdRanges::new();
+        ranges.add(IdRange::new(3, 5));
+        ranges.add(IdRange::new(10, 14));
+        ranges.add(IdRange::new(16, 20));
+        ranges.add(IdRange::new(11, 13));
+
+        assert_eq!(
+            ranges.ranges,
+            HashSet::from_iter(vec![
+                IdRange::new(3, 5),
+                IdRange::new(10, 14),
+                IdRange::new(16, 20),
+            ])
+        );
+    }
+
+    #[test]
+    fn add_id_range_extending_one_no_overlap() {
+        let mut ranges = IdRanges::new();
+        ranges.add(IdRange::new(3, 5));
+        ranges.add(IdRange::new(10, 14));
+        ranges.add(IdRange::new(16, 20));
+        ranges.add(IdRange::new(11, 15));
+
+        assert_eq!(
+            ranges.ranges,
+            HashSet::from_iter(vec![
+                IdRange::new(3, 5),
+                IdRange::new(10, 15),
+                IdRange::new(16, 20),
+            ])
+        );
+    }
+
+    #[test]
+    fn add_id_range_extending_one_with_overlap_over_maximum() {
+        let mut ranges = IdRanges::new();
+        ranges.add(IdRange::new(3, 5));
+        ranges.add(IdRange::new(10, 14));
+        ranges.add(IdRange::new(16, 20));
+        ranges.add(IdRange::new(11, 40));
+
+        assert_eq!(
+            ranges.ranges,
+            HashSet::from_iter(vec![IdRange::new(3, 5), IdRange::new(10, 40)])
+        );
+    }
+
+    #[test]
+    fn add_id_range_extending_one_with_one_overlap() {
+        let mut ranges = IdRanges::new();
+        ranges.add(IdRange::new(3, 5));
+        ranges.add(IdRange::new(10, 14));
+        ranges.add(IdRange::new(16, 20));
+        ranges.add(IdRange::new(2, 15));
+
+        assert_eq!(
+            ranges.ranges,
+            HashSet::from_iter(vec![IdRange::new(2, 15), IdRange::new(16, 20)])
+        );
+    }
+
+    #[test]
+    fn add_id_range_before_others() {
+        let mut ranges = IdRanges::new();
+        ranges.add(IdRange::new(3, 5));
+        ranges.add(IdRange::new(10, 14));
+        ranges.add(IdRange::new(16, 20));
+        ranges.add(IdRange::new(1, 2));
+
+        assert_eq!(
+            ranges.ranges,
+            HashSet::from_iter(vec![
+                IdRange::new(1, 2),
+                IdRange::new(3, 5),
+                IdRange::new(10, 14),
+                IdRange::new(16, 20)
+            ])
+        );
+    }
+
+    #[test]
+    fn add_id_range_after_other() {
+        let mut ranges = IdRanges::new();
+        ranges.add(IdRange::new(3, 5));
+        ranges.add(IdRange::new(10, 14));
+
+        assert_eq!(
+            ranges.ranges,
+            HashSet::from_iter(vec![IdRange::new(3, 5), IdRange::new(10, 14),])
         );
     }
 }
