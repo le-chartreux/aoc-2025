@@ -10,10 +10,12 @@ struct IdRange {
 
 impl IdRange {
     fn new(start: Id, end: Id) -> Self {
+        assert!(start <= end, "start must be <= end");
         IdRange { start, end }
     }
 
     fn size(&self) -> usize {
+        // Fine to cast as start <= end (guarentee by new).
         (self.end - self.start + 1) as usize
     }
 
@@ -42,27 +44,21 @@ impl IdRanges {
     /// Add a new range to the ranges, modifing and/or deleting existing ranges if necessary.
     fn add(&mut self, mut range: IdRange) {
         // Expand to the start of the range where the range's start is in, if any.
-        if let Some(IdRange {
-            start: range_start,
-            end: _,
-        }) = self
+        if let Some(existing) = self
             .ranges
             .iter()
             .find(|existing_range| existing_range.contains_id(range.start))
         {
-            range.start = *range_start;
+            range.start = existing.start;
         }
 
         // Expand to the end of the range where the range's end is in, if any.
-        if let Some(IdRange {
-            start: _,
-            end: range_end,
-        }) = self
+        if let Some(existing) = self
             .ranges
             .iter()
             .find(|existing_range| existing_range.contains_id(range.end))
         {
-            range.end = *range_end;
+            range.end = existing.end;
         }
 
         // Remove existing ranges in between the start and the end of the range.
@@ -88,11 +84,10 @@ fn read_input(path: &str) -> IdRanges {
     while let Some(line) = input_file_lines.next()
         && !line.is_empty()
     {
-        let mut split = line.split("-");
-        if let (Some(inf), Some(sup)) = (split.next(), split.next()) {
+        if let Some((start, end)) = line.split_once("-") {
             ranges.add(IdRange::new(
-                inf.parse().expect("failed to parse inf of range"),
-                sup.parse().expect("failed to parse sup of range"),
+                start.parse().expect("failed to parse inf of range"),
+                end.parse().expect("failed to parse sup of range"),
             ));
         }
     }
