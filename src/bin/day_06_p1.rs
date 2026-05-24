@@ -44,33 +44,29 @@ fn main() {
 
 fn read_input(path: &str) -> Vec<MathProblem> {
     let input_file_content = fs::read_to_string(path).expect("failed to read file input");
-    let mut input_file_lines = input_file_content.lines().peekable();
-
-    let number_of_columns = input_file_lines
-        .peek()
-        .expect("can't read first line")
-        .split_whitespace()
-        .count();
-    let mut all_operands: Vec<Vec<Operand>> = vec![Vec::new(); number_of_columns];
-
-    while let Some(line) = input_file_lines.peek()
-        && !(line.contains('+') || line.contains('*'))
-    {
-        for (i, number) in line.split_whitespace().enumerate() {
-            all_operands[i].push(Operand::from_str(number).expect("can't parse number"));
-        }
-        input_file_lines.next();
-    }
-
-    let line = input_file_lines.next().expect("last line should exist");
-    let operators = line
+    // Use .rev to read the operators first.
+    let mut input_file_lines = input_file_content.lines().rev();
+    let operators = input_file_lines
+        .next()
+        .expect("can't read operators line")
         .split_whitespace()
         .map(|operator| Operator::from_str(operator).expect("can't parse operator"));
 
-    operators
-        .zip(all_operands.drain(..))
-        .map(|(operator, operands)| MathProblem { operator, operands })
-        .collect()
+    let mut problems: Vec<MathProblem> = operators
+        .map(|operator| MathProblem {
+            operator,
+            operands: Vec::new(),
+        })
+        .collect();
+
+    for line in input_file_lines {
+        for (i, number) in line.split_whitespace().enumerate() {
+            problems[i]
+                .operands
+                .push(Operand::from_str(number).expect("can't parse number"));
+        }
+    }
+    problems
 }
 
 #[cfg(test)]
