@@ -8,9 +8,9 @@ enum Operator {
     Multiply,
 }
 
-impl Operator {
-    fn from_char(s: &char) -> Self {
-        match s {
+impl From<char> for Operator {
+    fn from(value: char) -> Self {
+        match value {
             '+' => Operator::Sum,
             '*' => Operator::Multiply,
             _ => panic!("failed to load operator"),
@@ -93,7 +93,7 @@ fn to_cephalopod_math_problems(
         if !operator_char.is_whitespace() {
             // End of block.
             problems.push(MathProblem {
-                operator: Operator::from_char(operator_char),
+                operator: Operator::from(*operator_char),
                 operands: mem::take(&mut operands),
             });
         }
@@ -111,12 +111,7 @@ mod tests {
 
     #[test]
     fn operator_from_char_sum() {
-        assert_eq!(Operator::from_char(&'+'), Operator::Sum);
-    }
-
-    #[test]
-    fn operator_from_str_err() {
-        assert_eq!(Operator::from_char(&'+'), Operator::Sum);
+        assert_eq!(Operator::from('+'), Operator::Sum);
     }
 
     #[test]
