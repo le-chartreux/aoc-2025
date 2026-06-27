@@ -1,6 +1,8 @@
-use std::{fs, iter::zip};
+use std::collections::HashSet;
+use std::fs;
+use std::ops::{Deref, DerefMut};
 
-#[derive(PartialEq, Debug)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 enum ManifoldElement {
     TachyonBeam,
     EmptySpace,
@@ -10,17 +12,31 @@ enum ManifoldElement {
 impl From<char> for ManifoldElement {
     fn from(value: char) -> Self {
         match value {
-            '.' => ManifoldElement::EmptySpace,
-            'S' | '|' => ManifoldElement::TachyonBeam,
-            '^' => ManifoldElement::Splitter,
-            _ => panic!("failed to read input: unknown char"),
+            '.' => Self::EmptySpace,
+            'S' | '|' => Self::TachyonBeam,
+            '^' => Self::Splitter,
+            _ => panic!("unknown manifold element: {value:?}"),
         }
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(Debug, PartialEq, Eq)]
 struct ManifoldLine {
     line: Vec<ManifoldElement>,
+}
+
+impl Deref for ManifoldLine {
+    type Target = [ManifoldElement];
+
+    fn deref(&self) -> &Self::Target {
+        &self.line
+    }
+}
+
+impl DerefMut for ManifoldLine {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.line
+    }
 }
 
 impl std::iter::FromIterator<ManifoldElement> for ManifoldLine {
@@ -32,52 +48,55 @@ impl std::iter::FromIterator<ManifoldElement> for ManifoldLine {
 }
 
 impl ManifoldLine {
-    fn expand_beams_of_previous(&mut self, beams_positions_of_previous: &[usize]) {
-        for &beam_position_of_previous in beams_positions_of_previous {
-            match self.line[beam_position_of_previous] {
-                ManifoldElement::TachyonBeam => {}
-                ManifoldElement::EmptySpace => {
-                    self.line[beam_position_of_previous] = ManifoldElement::TachyonBeam
-                }
-                ManifoldElement::Splitter => {
-                    self.add_beams_around(beam_position_of_previous);
-                }
+    fn expand_beams_of_previous(
+        &mut self,
+        previous_beams_positions: impl IntoIterator<Item = usize>,
+    ) {
+        for previous_beams_position in previous_beams_positions {
+            self.expand_beam_of_previous(previous_beams_position);
+        }
+    }
+
+    fn expand_beam_of_previous(&mut self, previous_beam_position: usize) {
+        match self[previous_beam_position] {
+            ManifoldElement::EmptySpace => {
+                self[previous_beam_position] = ManifoldElement::TachyonBeam
             }
+            ManifoldElement::Splitter => {
+                self.add_beams_around(previous_beam_position);
+            }
+            ManifoldElement::TachyonBeam => {}
         }
     }
 
     fn add_beams_around(&mut self, position: usize) {
-        if position >= 1 && self.line[position - 1] == ManifoldElement::EmptySpace {
-            self.line[position - 1] = ManifoldElement::TachyonBeam;
-        }
-        if position + 1 < self.line.len() && self.line[position + 1] == ManifoldElement::EmptySpace
+        for &neighbor in [
+            position.checked_sub(1),
+            (position + 1 < self.len()).then_some(position + 1),
+        ]
+        .iter()
+        .flatten()
         {
-            self.line[position + 1] = ManifoldElement::TachyonBeam;
+            if matches!(self[neighbor], ManifoldElement::EmptySpace) {
+                self[neighbor] = ManifoldElement::TachyonBeam;
+            }
         }
     }
 
-    fn get_beams_positions(&self) -> Vec<usize> {
-        self.line
-            .iter()
+    fn beams_positions(&self) -> impl Iterator<Item = usize> {
+        self.iter()
             .enumerate()
-            .filter_map(|(pos, elem)| (*elem == ManifoldElement::TachyonBeam).then_some(pos))
-            .collect()
+            .filter_map(|(pos, elem)| (matches!(elem, ManifoldElement::TachyonBeam)).then_some(pos))
     }
 
-    fn get_splitters_positions(&self) -> Vec<usize> {
-        self.line
-            .iter()
+    fn splitters_positions(&self) -> impl Iterator<Item = usize> {
+        self.iter()
             .enumerate()
-            .filter_map(|(pos, elem)| (*elem == ManifoldElement::Splitter).then_some(pos))
-            .collect()
-    }
-
-    fn len(&self) -> usize {
-        self.line.len()
+            .filter_map(|(pos, elem)| (matches!(elem, ManifoldElement::Splitter)).then_some(pos))
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(Debug, PartialEq, Eq)]
 struct Manifold {
     lines: Vec<ManifoldLine>,
 }
@@ -96,39 +115,37 @@ impl std::iter::FromIterator<ManifoldLine> for Manifold {
 
 impl Manifold {
     fn count_number_of_beam_split(&self) -> usize {
-        zip(
-            self.lines[..self.lines.len() - 1].iter(),
-            self.lines[1..].iter(),
-        )
-        .map(|(previous_line, current_line)| {
-            let previous_beams_positions = previous_line.get_beams_positions();
-            current_line
-                .get_splitters_positions()
-                .iter()
-                .filter(|&pos| previous_beams_positions.contains(pos))
-                .count()
-        })
-        .sum()
+        self.lines
+            .windows(2)
+            .map(|window| {
+                let previous_line = &window[0];
+                let current_line = &window[1];
+                let previous_beams: HashSet<usize> = previous_line.beams_positions().collect();
+                current_line
+                    .splitters_positions()
+                    .filter(|splitter_position| previous_beams.contains(splitter_position))
+                    .count()
+            })
+            .sum()
     }
 
-    fn expand_beam_of_first_line(&mut self) {
+    fn expand_beams_of_first_line(&mut self) {
         for i in 1..self.lines.len() {
-            let beams_positions_of_previous = self.lines[i - 1].get_beams_positions();
-            self.lines[i].expand_beams_of_previous(&beams_positions_of_previous);
+            let previous_beams: HashSet<usize> = self.lines[i - 1].beams_positions().collect();
+            self.lines[i].expand_beams_of_previous(previous_beams);
         }
     }
 }
 
 fn main() {
     let mut manifold = read_input("res/day_07_input.txt");
-    manifold.expand_beam_of_first_line();
+    manifold.expand_beams_of_first_line();
     let total_of_splits = manifold.count_number_of_beam_split();
     println!("The tachyon beam was split a total of {total_of_splits} times.");
 }
 
 fn read_input(path: &str) -> Manifold {
     let input_file_content = fs::read_to_string(path).expect("failed to read file input");
-
     read_input_from_content(&input_file_content)
 }
 
@@ -165,7 +182,7 @@ mod tests {
                 ManifoldElement::EmptySpace,
             ],
         };
-        line.expand_beams_of_previous(&[0, 2, 4, 5, 6]);
+        line.expand_beams_of_previous([0, 2, 4, 5, 6]);
         assert_eq!(
             line,
             ManifoldLine {
@@ -320,7 +337,7 @@ mod tests {
             ]
             .join("\n"),
         );
-        example.expand_beam_of_first_line();
+        example.expand_beams_of_first_line();
         assert_eq!(
             example,
             read_input_from_content(
