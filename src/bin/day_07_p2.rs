@@ -52,18 +52,28 @@ impl ManifoldLine {
     /// a different timeline.
     fn expand_beams_of_previous(
         &self,
-        previous_beams_positions: impl IntoIterator<Item = usize>,
-    ) -> (Vec<usize>, u32) {
-        let mut result = Vec::<usize>::new();
+        previous_beams_positions: impl IntoIterator<Item = (usize, u64)>,
+    ) -> (Vec<(usize, u64)>, u64) {
+        let mut result = Vec::<(usize, u64)>::new();
         let mut number_of_split = 0;
-        for previous_beam_position in previous_beams_positions {
+        for (previous_beam_position, number_of_beams) in previous_beams_positions {
             match self[previous_beam_position] {
                 ManifoldElement::EmptySpace => {
-                    result.push(previous_beam_position);
+                    ManifoldLine::add_to_beams_positions(
+                        previous_beam_position,
+                        number_of_beams,
+                        &mut result,
+                    );
                 }
                 ManifoldElement::Splitter => {
-                    number_of_split += 1;
-                    result.extend(self.get_empty_existing_neighbors(previous_beam_position));
+                    number_of_split += number_of_beams;
+                    for neighbor in self.get_empty_existing_neighbors(previous_beam_position) {
+                        ManifoldLine::add_to_beams_positions(
+                            neighbor,
+                            number_of_beams,
+                            &mut result,
+                        );
+                    }
                 }
                 ManifoldElement::TachyonBeamStart => {}
             }
@@ -71,8 +81,23 @@ impl ManifoldLine {
         (result, number_of_split)
     }
 
+    fn add_to_beams_positions(
+        position: usize,
+        number_of_beams: u64,
+        beams_positions: &mut Vec<(usize, u64)>,
+    ) {
+        let mut existing_position = beams_positions
+            .iter_mut()
+            .filter(|(pos, _)| *pos == position);
+        if let Some(beam_position) = existing_position.next() {
+            beam_position.1 += number_of_beams;
+        } else {
+            beams_positions.push((position, number_of_beams));
+        }
+    }
+
     /// Get neighbors of the position that are empty and aren't out of bound.
-    fn get_empty_existing_neighbors(&self, position: usize) -> impl IntoIterator<Item = usize> {
+    fn get_empty_existing_neighbors(&self, position: usize) -> Vec<usize> {
         [
             position.checked_sub(1),
             (position + 1 < self.len()).then_some(position + 1),
@@ -85,11 +110,11 @@ impl ManifoldLine {
         .collect::<Vec<usize>>()
     }
 
-    fn start_beams_positions(&self) -> Vec<usize> {
+    fn start_beams_positions(&self) -> Vec<(usize, u64)> {
         self.iter()
             .enumerate()
             .filter_map(|(pos, elem)| {
-                (matches!(elem, ManifoldElement::TachyonBeamStart)).then_some(pos)
+                (matches!(elem, ManifoldElement::TachyonBeamStart)).then_some((pos, 1))
             })
             .collect()
     }
@@ -113,8 +138,8 @@ impl std::iter::FromIterator<ManifoldLine> for Manifold {
 }
 
 impl Manifold {
-    fn count_number_of_beam_split(&self) -> u32 {
-        let mut previous_beams_positions = Vec::<usize>::new();
+    fn count_number_of_beam_split(&self) -> u64 {
+        let mut previous_beams_positions = Vec::<(usize, u64)>::new();
         let mut total_beam_split = 0;
         for line in &self.lines {
             let (mut current_beams_positions, beam_splits_current_line) =
@@ -127,7 +152,7 @@ impl Manifold {
         total_beam_split
     }
 
-    fn count_number_of_timelines(&self) -> u32 {
+    fn count_number_of_timelines(&self) -> u64 {
         // If there is 0 split, there is 1 timeline, if there is 1 split,
         // there is 2 timelines, etc.
         self.count_number_of_beam_split() + 1
@@ -181,8 +206,8 @@ mod tests {
             ],
         };
         assert_eq!(
-            line.expand_beams_of_previous([0, 2, 4, 5, 6]),
-            (vec![0, 2, 5, 5, 5, 7], 2)
+            line.expand_beams_of_previous([(0, 1), (2, 1), (4, 1), (5, 1), (6, 1)]),
+            (vec![(0, 1), (2, 1), (5, 3), (7, 1)], 2)
         )
     }
 
