@@ -4,7 +4,7 @@ use std::ops::{Deref, DerefMut};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 enum ManifoldElement {
-    TachyonBeam,
+    TachyonBeamStart,
     EmptySpace,
     Splitter,
 }
@@ -13,7 +13,7 @@ impl From<char> for ManifoldElement {
     fn from(value: char) -> Self {
         match value {
             '.' => Self::EmptySpace,
-            'S' | '|' => Self::TachyonBeam,
+            'S' => Self::TachyonBeamStart,
             '^' => Self::Splitter,
             _ => panic!("unknown manifold element: {value:?}"),
         }
@@ -48,51 +48,51 @@ impl std::iter::FromIterator<ManifoldElement> for ManifoldLine {
 }
 
 impl ManifoldLine {
+    /// Expand beams of previous line to this one, and return the new positions of beams.
     fn expand_beams_of_previous(
-        &mut self,
+        &self,
         previous_beams_positions: impl IntoIterator<Item = usize>,
-    ) {
-        for previous_beams_position in previous_beams_positions {
-            self.expand_beam_of_previous(previous_beams_position);
+    ) -> (HashSet<usize>, u32) {
+        let mut result = HashSet::<usize>::new();
+        let mut number_of_split = 0;
+        for previous_beam_position in previous_beams_positions {
+            match self[previous_beam_position] {
+                ManifoldElement::EmptySpace => {
+                    result.insert(previous_beam_position);
+                }
+                ManifoldElement::Splitter => {
+                    number_of_split += 1;
+                    result.extend(
+                        self.get_empty_existing_neighbors(previous_beam_position),
+                    );
+                }
+                ManifoldElement::TachyonBeamStart => {}
+            }
         }
+        (result, number_of_split)
     }
 
-    fn expand_beam_of_previous(&mut self, previous_beam_position: usize) {
-        match self[previous_beam_position] {
-            ManifoldElement::EmptySpace => {
-                self[previous_beam_position] = ManifoldElement::TachyonBeam
-            }
-            ManifoldElement::Splitter => {
-                self.add_beams_around(previous_beam_position);
-            }
-            ManifoldElement::TachyonBeam => {}
-        }
-    }
-
-    fn add_beams_around(&mut self, position: usize) {
-        for &neighbor in [
+    /// Get neighbors of the position that are empty and aren't out of bound.
+    fn get_empty_existing_neighbors(&self, position: usize) -> impl IntoIterator<Item = usize> {
+        [
             position.checked_sub(1),
             (position + 1 < self.len()).then_some(position + 1),
         ]
         .iter()
         .flatten()
-        {
-            if matches!(self[neighbor], ManifoldElement::EmptySpace) {
-                self[neighbor] = ManifoldElement::TachyonBeam;
-            }
-        }
+        .filter_map(|&neighbor| {
+            matches!(self[neighbor], ManifoldElement::EmptySpace).then_some(neighbor)
+        })
+        .collect::<HashSet<usize>>()
     }
 
-    fn beams_positions(&self) -> impl Iterator<Item = usize> {
+    fn start_beams_positions(&self) -> HashSet<usize> {
         self.iter()
             .enumerate()
-            .filter_map(|(pos, elem)| (matches!(elem, ManifoldElement::TachyonBeam)).then_some(pos))
-    }
-
-    fn splitters_positions(&self) -> impl Iterator<Item = usize> {
-        self.iter()
-            .enumerate()
-            .filter_map(|(pos, elem)| (matches!(elem, ManifoldElement::Splitter)).then_some(pos))
+            .filter_map(|(pos, elem)| {
+                (matches!(elem, ManifoldElement::TachyonBeamStart)).then_some(pos)
+            })
+            .collect()
     }
 }
 
@@ -107,39 +107,29 @@ impl std::iter::FromIterator<ManifoldLine> for Manifold {
         let first_line_len = lines[0].len();
         assert!(
             lines.iter().all(|line| line.len() == first_line_len),
-            "all lines of manifold should have the same len"
+            "all lines of manifold must have the same len"
         );
         Self { lines }
     }
 }
 
 impl Manifold {
-    fn count_number_of_beam_split(&self) -> usize {
-        self.lines
-            .windows(2)
-            .map(|window| {
-                let previous_line = &window[0];
-                let current_line = &window[1];
-                let previous_beams: HashSet<usize> = previous_line.beams_positions().collect();
-                current_line
-                    .splitters_positions()
-                    .filter(|splitter_position| previous_beams.contains(splitter_position))
-                    .count()
-            })
-            .sum()
-    }
+    fn count_number_of_beam_split(&self) -> u32 {
+        let mut previous_beams_positions: HashSet<usize> = self.lines[0].start_beams_positions();
+        let mut total_beam_split = 0;
+        let mut beam_splits_current_line: u32;
 
-    fn expand_beams_of_first_line(&mut self) {
-        for i in 1..self.lines.len() {
-            let previous_beams: HashSet<usize> = self.lines[i - 1].beams_positions().collect();
-            self.lines[i].expand_beams_of_previous(previous_beams);
+        for line in self.lines.iter().skip(1) {
+            (previous_beams_positions, beam_splits_current_line) =
+                line.expand_beams_of_previous(previous_beams_positions);
+            total_beam_split += beam_splits_current_line;
         }
+        total_beam_split
     }
 }
 
 fn main() {
-    let mut manifold = read_input("res/day_07_input.txt");
-    manifold.expand_beams_of_first_line();
+    let manifold = read_input("res/day_07_input.txt");
     let total_of_splits = manifold.count_number_of_beam_split();
     println!("The tachyon beam was split a total of {total_of_splits} times.");
 }
@@ -163,14 +153,16 @@ mod tests {
     #[test]
     fn manifold_element_from_char() {
         assert_eq!(ManifoldElement::from('.'), ManifoldElement::EmptySpace);
-        assert_eq!(ManifoldElement::from('S'), ManifoldElement::TachyonBeam);
-        assert_eq!(ManifoldElement::from('|'), ManifoldElement::TachyonBeam);
+        assert_eq!(
+            ManifoldElement::from('S'),
+            ManifoldElement::TachyonBeamStart
+        );
         assert_eq!(ManifoldElement::from('^'), ManifoldElement::Splitter);
     }
 
     #[test]
     fn expand_beams_of_previous() {
-        let mut line = ManifoldLine {
+        let line = ManifoldLine {
             line: vec![
                 ManifoldElement::EmptySpace,
                 ManifoldElement::EmptySpace,
@@ -182,21 +174,11 @@ mod tests {
                 ManifoldElement::EmptySpace,
             ],
         };
-        line.expand_beams_of_previous([0, 2, 4, 5, 6]);
+        let mut expected_result = HashSet::new();
+        expected_result.extend(vec![0, 2, 5, 7]);
         assert_eq!(
-            line,
-            ManifoldLine {
-                line: vec![
-                    ManifoldElement::TachyonBeam,
-                    ManifoldElement::EmptySpace,
-                    ManifoldElement::TachyonBeam,
-                    ManifoldElement::Splitter,
-                    ManifoldElement::Splitter,
-                    ManifoldElement::TachyonBeam,
-                    ManifoldElement::Splitter,
-                    ManifoldElement::TachyonBeam,
-                ]
-            }
+            line.expand_beams_of_previous([0, 2, 4, 5, 6]),
+            (expected_result, 2)
         )
     }
 
@@ -223,7 +205,7 @@ mod tests {
                             ManifoldElement::EmptySpace,
                             ManifoldElement::EmptySpace,
                             ManifoldElement::EmptySpace,
-                            ManifoldElement::TachyonBeam,
+                            ManifoldElement::TachyonBeamStart,
                             ManifoldElement::EmptySpace,
                             ManifoldElement::EmptySpace,
                             ManifoldElement::EmptySpace,
@@ -315,8 +297,8 @@ mod tests {
     }
 
     #[test]
-    fn expand_beam_of_first_line_on_example() {
-        let mut example = read_input_from_content(
+    fn count_number_of_beam_split_on_example() {
+        let example = read_input_from_content(
             &[
                 ".......S.......",
                 "...............",
@@ -334,56 +316,6 @@ mod tests {
                 "...............",
                 ".^.^.^.^.^...^.",
                 "...............",
-            ]
-            .join("\n"),
-        );
-        example.expand_beams_of_first_line();
-        assert_eq!(
-            example,
-            read_input_from_content(
-                &[
-                    ".......S.......",
-                    ".......|.......",
-                    "......|^|......",
-                    "......|.|......",
-                    ".....|^|^|.....",
-                    ".....|.|.|.....",
-                    "....|^|^|^|....",
-                    "....|.|.|.|....",
-                    "...|^|^|||^|...",
-                    "...|.|.|||.|...",
-                    "..|^|^|||^|^|..",
-                    "..|.|.|||.|.|..",
-                    ".|^|||^||.||^|.",
-                    ".|.|||.||.||.|.",
-                    "|^|^|^|^|^|||^|",
-                    "|.|.|.|.|.|||.|",
-                ]
-                .join("\n")
-            )
-        )
-    }
-
-    #[test]
-    fn count_number_of_beam_split_on_example_resolved() {
-        let example = read_input_from_content(
-            &[
-                ".......S.......",
-                ".......|.......",
-                "......|^|......",
-                "......|.|......",
-                ".....|^|^|.....",
-                ".....|.|.|.....",
-                "....|^|^|^|....",
-                "....|.|.|.|....",
-                "...|^|^|||^|...",
-                "...|.|.|||.|...",
-                "..|^|^|||^|^|..",
-                "..|.|.|||.|.|..",
-                ".|^|||^||.||^|.",
-                ".|.|||.||.||.|.",
-                "|^|^|^|^|^|||^|",
-                "|.|.|.|.|.|||.|",
             ]
             .join("\n"),
         );
