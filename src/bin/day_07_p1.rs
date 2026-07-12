@@ -174,11 +174,9 @@ mod tests {
                 ManifoldElement::EmptySpace,
             ],
         };
-        let mut expected_result = HashSet::new();
-        expected_result.extend(vec![0, 2, 5, 7]);
         assert_eq!(
             line.expand_beams_of_previous([0, 2, 4, 5, 6]),
-            (expected_result, 2)
+            (HashSet::from([0, 2, 5, 7]), 2)
         )
     }
 
