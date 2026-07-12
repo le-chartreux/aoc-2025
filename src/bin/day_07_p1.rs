@@ -62,9 +62,7 @@ impl ManifoldLine {
                 }
                 ManifoldElement::Splitter => {
                     number_of_split += 1;
-                    result.extend(
-                        self.get_empty_existing_neighbors(previous_beam_position),
-                    );
+                    result.extend(self.get_empty_existing_neighbors(previous_beam_position));
                 }
                 ManifoldElement::TachyonBeamStart => {}
             }
@@ -115,15 +113,17 @@ impl std::iter::FromIterator<ManifoldLine> for Manifold {
 
 impl Manifold {
     fn count_number_of_beam_split(&self) -> u32 {
-        let mut previous_beams_positions: HashSet<usize> = self.lines[0].start_beams_positions();
+        let mut previous_beams_positions = HashSet::<usize>::new();
         let mut total_beam_split = 0;
-        let mut beam_splits_current_line: u32;
 
-        for line in self.lines.iter().skip(1) {
-            (previous_beams_positions, beam_splits_current_line) =
+        for line in &self.lines {
+            let (mut current_beams_positions, beam_splits_current_line) =
                 line.expand_beams_of_previous(previous_beams_positions);
             total_beam_split += beam_splits_current_line;
+            current_beams_positions.extend(line.start_beams_positions());
+            previous_beams_positions = current_beams_positions;
         }
+
         total_beam_split
     }
 }
