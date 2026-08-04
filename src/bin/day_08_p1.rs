@@ -25,15 +25,16 @@ impl Position3d {
     }
 
     fn euclidean_distance_to(&self, other: &Self) -> Distance {
-        (((self.x - other.x).pow(2) + (self.y - other.y).pow(2) + (self.z - other.z).pow(2))
-            as Distance)
-            .sqrt()
+        let dx = self.x - other.x;
+        let dy = self.y - other.y;
+        let dz = self.z - other.z;
+        ((dx.pow(2) + dy.pow(2) + dz.pow(2)) as Distance).sqrt()
     }
 }
 
 /// Get all the pairs of junction boxes, ordered by distance (closest first).
 /// Each pair only appears one time, so A and B will produce either (A, B) or (B, A), not both.
-fn get_all_junction_box_pairs_sorted_by_distance<'a>(
+fn all_junction_box_pairs_sorted_by_distance<'a>(
     junction_boxes: &'a JunctionBoxes,
 ) -> JunctionBoxPairsByDistance<'a> {
     let mut pairs = Vec::with_capacity(junction_boxes.len() * (junction_boxes.len() - 1) / 2);
@@ -50,13 +51,11 @@ fn get_all_junction_box_pairs_sorted_by_distance<'a>(
     pairs
 }
 
-/// Get circuits after connecting pairs `n` times.
-fn get_circuits_after_connecting_n_pairs<'a>(
+fn circuits_after_connecting_n_pairs<'a>(
     junction_boxes: &'a JunctionBoxes,
     n: usize,
 ) -> Circuits<'a> {
-    let junction_box_pairs_by_distance =
-        get_all_junction_box_pairs_sorted_by_distance(junction_boxes);
+    let junction_box_pairs_by_distance = all_junction_box_pairs_sorted_by_distance(junction_boxes);
     let mut circuits: Circuits = junction_boxes
         .iter()
         .map(|junction_box| HashSet::from([junction_box]))
@@ -84,15 +83,15 @@ fn product_of_sizes_of_three_largest_circuits(circuits: &Circuits) -> usize {
     if circuits.len() < 3 {
         panic!("can't do the product of the three largest circuits with less than 3 circuits");
     }
-    let mut circuits_lenghts: Vec<usize> = circuits.iter().map(Circuit::len).collect();
-    circuits_lenghts.sort();
-    circuits_lenghts.reverse();
-    circuits_lenghts[0] * circuits_lenghts[1] * circuits_lenghts[2]
+    let mut circuits_lenghs: Vec<usize> = circuits.iter().map(Circuit::len).collect();
+    circuits_lenghs.sort_unstable();
+    circuits_lenghs.reverse();
+    circuits_lenghs[0] * circuits_lenghs[1] * circuits_lenghs[2]
 }
 
 fn main() {
     let junction_boxes = read_input("res/day_08_input.txt");
-    let circuits = get_circuits_after_connecting_n_pairs(&junction_boxes, 1000);
+    let circuits = circuits_after_connecting_n_pairs(&junction_boxes, 1000);
     let product = product_of_sizes_of_three_largest_circuits(&circuits);
     println!("The product of the sizes of the three largest circuits is {product}");
 }
@@ -106,23 +105,23 @@ fn read_input_from_content(content: &str) -> JunctionBoxes {
     content
         .lines()
         .map(|line| {
-            line.split(',').map(|position| {
-                position
-                    .parse()
-                    .expect("failed to parse a position (as str) to a number")
-            })
-        })
-        .map(|mut positions| {
+            let mut positions = line.split(",");
             Position3d::new(
                 positions
                     .next()
-                    .expect("position with missing x in text input"),
+                    .expect("position with missing x in text input")
+                    .parse()
+                    .expect("bad value for x"),
                 positions
                     .next()
-                    .expect("position with missing y in text input"),
+                    .expect("position with missing y in text input")
+                    .parse()
+                    .expect("bad value for y"),
                 positions
                     .next()
-                    .expect("position with missing z in text input"),
+                    .expect("position with missing z in text input")
+                    .parse()
+                    .expect("bad value for z"),
             )
         })
         .collect()
@@ -186,7 +185,7 @@ mod tests {
     }
 
     #[test]
-    fn get_all_junction_box_pairs_sorted_by_distance_on_4_first_lines_of_example() {
+    fn all_junction_box_pairs_sorted_by_distance_on_4_first_lines_of_example() {
         let junction_boxes = vec![
             Position3d::new(162, 817, 812),
             Position3d::new(57, 618, 57),
@@ -194,7 +193,7 @@ mod tests {
             Position3d::new(592, 479, 940),
         ];
         assert_eq!(
-            get_all_junction_box_pairs_sorted_by_distance(&junction_boxes),
+            all_junction_box_pairs_sorted_by_distance(&junction_boxes),
             vec![
                 (&junction_boxes[2], &junction_boxes[3]), // 507.106498
                 (&junction_boxes[0], &junction_boxes[3]), // 561.718791
@@ -207,10 +206,10 @@ mod tests {
     }
 
     #[test]
-    fn get_circuits_after_connecting_n_pairs_on_example() {
+    fn circuits_after_connecting_0_pairs_on_example() {
         let example = get_example();
         assert_eq!(
-            get_circuits_after_connecting_n_pairs(&example, 0),
+            circuits_after_connecting_n_pairs(&example, 0),
             vec![
                 HashSet::from([&example[0]]),
                 HashSet::from([&example[1]]),
@@ -234,9 +233,13 @@ mod tests {
                 HashSet::from([&example[19]]),
             ]
         );
+    }
 
+    #[test]
+    fn circuits_after_connecting_1_pair_on_example() {
+        let example = get_example();
         assert_eq!(
-            get_circuits_after_connecting_n_pairs(&example, 1),
+            circuits_after_connecting_n_pairs(&example, 1),
             vec![
                 HashSet::from([&example[0], &example[19]]),
                 HashSet::from([&example[1]]),
@@ -259,9 +262,13 @@ mod tests {
                 HashSet::from([&example[18]]),
             ]
         );
+    }
 
+    #[test]
+    fn circuits_after_connecting_2_pairs_on_example() {
+        let example = get_example();
         assert_eq!(
-            get_circuits_after_connecting_n_pairs(&example, 2),
+            circuits_after_connecting_n_pairs(&example, 2),
             vec![
                 HashSet::from([&example[0], &example[19], &example[7]]),
                 HashSet::from([&example[1]]),
@@ -283,9 +290,13 @@ mod tests {
                 HashSet::from([&example[18]]),
             ]
         );
+    }
 
+    #[test]
+    fn circuits_after_connecting_3_pairs_on_example() {
+        let example = get_example();
         assert_eq!(
-            get_circuits_after_connecting_n_pairs(&example, 3),
+            circuits_after_connecting_n_pairs(&example, 3),
             vec![
                 HashSet::from([&example[0], &example[19], &example[7]]),
                 HashSet::from([&example[1]]),
@@ -306,9 +317,13 @@ mod tests {
                 HashSet::from([&example[18]]),
             ]
         );
+    }
 
+    #[test]
+    fn circuits_after_connecting_4_pairs_on_example() {
+        let example = get_example();
         assert_eq!(
-            get_circuits_after_connecting_n_pairs(&example, 4),
+            circuits_after_connecting_n_pairs(&example, 4),
             vec![
                 HashSet::from([&example[0], &example[19], &example[7]]),
                 HashSet::from([&example[1]]),
@@ -334,7 +349,7 @@ mod tests {
     #[test]
     fn product_of_sizes_of_three_largest_circuits_on_example_after_10_connections() {
         let example = get_example();
-        let circuits = get_circuits_after_connecting_n_pairs(&example, 10);
+        let circuits = circuits_after_connecting_n_pairs(&example, 10);
         assert_eq!(product_of_sizes_of_three_largest_circuits(&circuits), 40);
     }
 
