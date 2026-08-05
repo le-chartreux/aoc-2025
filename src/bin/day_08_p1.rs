@@ -1,4 +1,8 @@
-use std::{collections::HashSet, fs};
+use std::{
+    cmp::{max, min},
+    collections::HashSet,
+    fs,
+};
 
 type Position = i64;
 type Distance = f64;
@@ -72,8 +76,10 @@ fn circuits_after_connecting_n_pairs<'a>(
             .expect("pair.1 not found in circuits");
 
         if index_of_circuit_of_pair_0 != index_of_circuit_of_pair_1 {
-            let to_merge = circuits.remove(index_of_circuit_of_pair_1);
-            circuits[index_of_circuit_of_pair_0].extend(to_merge);
+            let index_to_keep = min(index_of_circuit_of_pair_0, index_of_circuit_of_pair_1);
+            let index_to_remove = max(index_of_circuit_of_pair_0, index_of_circuit_of_pair_1);
+            let content_to_merge = circuits.remove(index_to_remove);
+            circuits[index_to_keep].extend(content_to_merge);
         }
     }
     circuits
