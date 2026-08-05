@@ -5,7 +5,7 @@ use std::{
 };
 
 type Position = i64;
-type Distance = f64;
+type Distance = i64;
 
 type JunctionBox = Position3d;
 type JunctionBoxes = Vec<JunctionBox>;
@@ -25,14 +25,15 @@ struct Position3d {
 
 impl Position3d {
     fn new(x: Position, y: Position, z: Position) -> Self {
-        Position3d { x, y, z }
+        Self { x, y, z }
     }
 
-    fn euclidean_distance_to(&self, other: &Self) -> Distance {
+    /// Squared to not bother with floats.
+    fn squared_euclidean_distance_to(&self, other: &Self) -> Distance {
         let dx = self.x - other.x;
         let dy = self.y - other.y;
         let dz = self.z - other.z;
-        ((dx.pow(2) + dy.pow(2) + dz.pow(2)) as Distance).sqrt()
+        dx.pow(2) + dy.pow(2) + dz.pow(2)
     }
 }
 
@@ -47,11 +48,7 @@ fn all_junction_box_pairs_sorted_by_distance<'a>(
             pairs.push((&junction_boxes[i], &junction_boxes[j]));
         }
     }
-    pairs.sort_by(|a, b| {
-        a.0.euclidean_distance_to(a.1)
-            .partial_cmp(&b.0.euclidean_distance_to(b.1))
-            .unwrap_or(std::cmp::Ordering::Equal)
-    });
+    pairs.sort_by_key(|(a, b)| a.squared_euclidean_distance_to(b));
     pairs
 }
 
@@ -85,20 +82,31 @@ fn circuits_after_connecting_n_pairs<'a>(
     circuits
 }
 
-fn product_of_sizes_of_three_largest_circuits(circuits: &Circuits) -> usize {
-    if circuits.len() < 3 {
-        panic!("can't do the product of the three largest circuits with less than 3 circuits");
+fn product_of_length_of_three_largest_circuits(circuits: &Circuits) -> usize {
+    assert!(
+        circuits.len() >= 3,
+        "can't do the product of the three largest circuits with less than 3 circuits"
+    );
+
+    let mut top = [0; 3];
+
+    for len in circuits.iter().map(Circuit::len) {
+        if len > top[0] {
+            top = [len, top[0], top[1]];
+        } else if len > top[1] {
+            top = [top[0], len, top[1]];
+        } else if len > top[2] {
+            top[2] = len;
+        }
     }
-    let mut circuits_lenghs: Vec<usize> = circuits.iter().map(Circuit::len).collect();
-    circuits_lenghs.sort_unstable();
-    circuits_lenghs.reverse();
-    circuits_lenghs[0] * circuits_lenghs[1] * circuits_lenghs[2]
+
+    top.iter().product()
 }
 
 fn main() {
     let junction_boxes = read_input("res/day_08_input.txt");
     let circuits = circuits_after_connecting_n_pairs(&junction_boxes, 1000);
-    let product = product_of_sizes_of_three_largest_circuits(&circuits);
+    let product = product_of_length_of_three_largest_circuits(&circuits);
     println!("The product of the sizes of the three largest circuits is {product}");
 }
 
@@ -111,24 +119,16 @@ fn read_input_from_content(content: &str) -> JunctionBoxes {
     content
         .lines()
         .map(|line| {
-            let mut positions = line.split(",");
-            Position3d::new(
-                positions
-                    .next()
-                    .expect("position with missing x in text input")
-                    .parse()
-                    .expect("bad value for x"),
-                positions
-                    .next()
-                    .expect("position with missing y in text input")
-                    .parse()
-                    .expect("bad value for y"),
-                positions
-                    .next()
-                    .expect("position with missing z in text input")
-                    .parse()
-                    .expect("bad value for z"),
-            )
+            let positions: Vec<Position> = line
+                .split(",")
+                .map(|position| position.parse().expect("invalid position in input"))
+                .collect();
+            assert_eq!(
+                positions.len(),
+                3,
+                "invalid number of positions in an input line"
+            );
+            Position3d::new(positions[0], positions[1], positions[2])
         })
         .collect()
 }
@@ -140,23 +140,25 @@ mod tests {
     #[test]
     fn position_3d_euclidean_distance_between_0_and_0() {
         assert_eq!(
-            Position3d::new(0, 0, 0).euclidean_distance_to(&Position3d::new(0, 0, 0)),
-            0_f64
+            Position3d::new(0, 0, 0).squared_euclidean_distance_to(&Position3d::new(0, 0, 0)),
+            0
         )
     }
     #[test]
     fn position_3d_euclidean_distance_between_two_positive_points() {
         assert_eq!(
-            Position3d::new(42, 1, 842).euclidean_distance_to(&Position3d::new(403, 61, 95)),
-            831.823298543627
+            Position3d::new(42, 1, 842)
+                .squared_euclidean_distance_to(&Position3d::new(403, 61, 95)),
+            691930
         )
     }
 
     #[test]
     fn position_3d_euclidean_distance_between_mixed_signs_points() {
         assert_eq!(
-            Position3d::new(-43, 8413, -3013).euclidean_distance_to(&Position3d::new(-4991, -9, 0)),
-            10222.081832973165
+            Position3d::new(-43, 8413, -3013)
+                .squared_euclidean_distance_to(&Position3d::new(-4991, -9, 0)),
+            104490957
         )
     }
 
@@ -356,7 +358,7 @@ mod tests {
     fn product_of_sizes_of_three_largest_circuits_on_example_after_10_connections() {
         let example = get_example();
         let circuits = circuits_after_connecting_n_pairs(&example, 10);
-        assert_eq!(product_of_sizes_of_three_largest_circuits(&circuits), 40);
+        assert_eq!(product_of_length_of_three_largest_circuits(&circuits), 40);
     }
 
     fn get_example() -> JunctionBoxes {
