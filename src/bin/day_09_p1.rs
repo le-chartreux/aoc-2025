@@ -1,16 +1,16 @@
 use std::{error::Error, fs, path::Path};
 
-type Position = u64;
+type Coordinate = u64;
 type Area = u64;
 
 #[derive(Debug, PartialEq)]
 struct Position2d {
-    x: Position,
-    y: Position,
+    x: Coordinate,
+    y: Coordinate,
 }
 
 impl Position2d {
-    fn new(x: Position, y: Position) -> Self {
+    fn new(x: Coordinate, y: Coordinate) -> Self {
         Position2d { x, y }
     }
 
@@ -49,8 +49,8 @@ fn read_input_from_content(content: &str) -> Result<Vec<Position2d>, Box<dyn Err
                 .split_once(",")
                 .ok_or_else(|| format!("invalid input line: {line:?}"))?;
 
-            let x = x.parse::<Position>()?;
-            let y = y.parse::<Position>()?;
+            let x = x.parse::<Coordinate>()?;
+            let y = y.parse::<Coordinate>()?;
             Ok(Position2d::new(x, y))
         })
         .collect()
